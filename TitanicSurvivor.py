@@ -1,3 +1,8 @@
+# CSCC11 Bonus Project
+# Author: Echo Li
+# Student#: 1000169505
+# University of Toronto: Scarborough
+
 import numpy as np
 import pandas as pd
 from scipy.stats import skewnorm
@@ -10,16 +15,30 @@ def round_to_half(n):
 	
 def is_together(members, df):
 	for i in range (0, len(members)-1):
-		m1 = df.loc[(member[i])+1]
-		m2 = df.loc[(member[i+1])+1]
+		m1 = df.loc[(members[i])+1]
+		m2 = df.loc[(members[i+1])+1]
 		if m1['FamilySize'] == 1 | m2['FamilySize'] == 1:
 			return False
-		if m1['FamilySize'] != m2['FamilySize'] & \
+		if m1['FamilySize'] != m2['FamilySize'] and \
 			m1['LastName'] != m2['LastName']:
 			return False
-	return True	
+	return True
+	
+def sort_alphanumeric_cabin(L):
+	temp_L1 = []
+	temp_L2 = []
+	for i in L:
+		deck = i[:1]
+		room = int(i[1:])
+		temp_L1.append([deck, room])
+	temp_L1.sort()
+	for j in temp_L1:
+		temp_L2.append(j[0] + str(j[1]))
+	return temp_L2
+	
 
 df = pd.read_csv('csv/train.csv', header=0)
+#df = pd.read_csv('C:/Users/3Aceli/Desktop/CSCC11Bonus/csv/train.csv', header=0)
 df['Gender'] = df['Sex'].map({ 'female': 0, 'male': 1}).astype(int)
 df['FamilySize'] = df['SibSp'] + df['Parch'] + 1
 df['BoardOrder'] = df['Embarked'].fillna(0).map ({ 'S': 1, 'C': 2, 'Q': 3, 0: 3 })
@@ -65,32 +84,32 @@ for i in range (0, len(entities)):
 		entities[i].append(int(k[0].strip()))
 		
 df['LastName'] = df['Name'].str.split(",").str[0]
-families = entities
-for i in range (0, len(families)):
-	if len(families[i]) != 1:
-		if (!is_together(families[i], df)):
-			del families[i]
-	else:
-		del families[i]	
+families = []
+for i in entities:
+	if len(i) != 1:
+		if not (is_together(families[i], df)):
+			families.append(i)
 
 takenRoomsArray = []
 for index, cabin in df['Cabin'].dropna().str.split(" ").iteritems():
 	takenRoomsArray.append(cabin)
 
-for i in range (0, len(takenRoomsArray)):
-	if len(takenRoomsArray[i]) > 1:
-		for j in range (0, len(takenRoomsArray[i])):
-			if len(takenRoomsArray[i][j]) == 1:
-				del takenRoomsArray[i][j]
-	else if len(takenRoomsArray[i]) == 1:
-		if takenRoomsArray[i][0] == "T":
+for i in takenRoomsArray:
+	if len(i) > 1:
+		for j in i:
+			if len(j) == 1:
+				i.remove(j)
+	elif len(i) == 1:
+		if i[0] == "T":
+			continue
+		elif len(i[0]) != 1:
 			continue
 		else:
-			del takenRoomsArray[i]
+			takenRoomsArray.remove(i)
 	
 takenRoomsList = []
 for i in range (0, len(takenRoomsArray)):
-	for j in range (0, len(takenRoomsArray[i]):
+	for j in range (0, len(takenRoomsArray[i])):
 		takenRoomsList.append(takenRoomsArray[i][j])
 
 deck = ["A", "B", "C", "D", "E", "F", "G"]
@@ -102,18 +121,21 @@ for i in range (0,7):
 	for j in range (0, roomsDeck[i]):
 		allRooms.append(deck[i] + str(j + 1))
 		
-roomsAvailable = list(set(allrooms).symmetric_difference(set(takenRoomsList))
-availCount = 0
+roomsAvailable = sort_alphanumeric_cabin(list(set(allRooms).symmetric_difference(set(takenRoomsList))))
 df['CabinFill'] = df['Cabin']
 for i in range (0,3):
 	for j in range (0,3):
 		passengerOrder = df[(df['BoardOrder'] == i+1) & (df['Pclass'] == j+1) & \
 			(df['Cabin'].isnull())]['Fare'].sort_values(ascending=False)
 		for index, value in passengerOrder.iteritems():
+			if not roomsAvailable:
+				break
 			# Note that some passengers are assigned the same room due to them being part of the same family
-			for k in range 
-			if (index + 1) in families
-			df.loc[(index),'CabinFill'] = roomsAvailable[availCount]
+			for k in families:
+				if (index + 1) in k:
+					familyRoom = roomsAvailable.pop(0)
+					break
+			df.loc[(index),'CabinFill'] = roomsAvailable.pop(0)
 			
 df['Deck'] = df['CabinFill'].str.split(" ").str[0].str[0]
 df['CabinNum'] = df['CabinFill'].str.split(" ").str[0].str.slice(1,4)
